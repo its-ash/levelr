@@ -1,0 +1,11 @@
+{
+  "id": "levelr",
+  "name": "Levelr",
+  "repo": "its-ash/levelr",
+  "package": "com.itsash.levelr",
+  "tagline": "Bubble level, angle, ruler, sound meter and compass in one app.",
+  "description": "Levelr turns your phone into a measuring toolbox. Check a surface with the bubble level, read an angle with the inclinometer, measure with an on-screen ruler drawn at true scale, estimate loudness with the sound meter, and find your heading with the compass. Everything runs on your phone, with no ads and no tracking.",
+  "category": "Tools",
+  "icon": "assets/icon/logo-1024.png",
+  "homepage": "https://levelr.itsash.in/"
+}
