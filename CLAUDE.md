@@ -1,8 +1,10 @@
 # Levelr (package: levelr / com.itsash.levelr)
 
 Measuring toolbox for Android: bubble level, angle (inclinometer), ruler, sound
-meter and compass. `UiShell` bottom navigation with one tool per tab; only the
-open tab is built, so only its sensor runs. The window keeps the screen on
+meter and compass. `UiShell` bottom navigation with one tool per tab; tabs are
+built on first visit and kept in an `IndexedStack` (last reading shows at once on
+revisit); `TabActive` tells each page if it is open, and only the open tab's
+sensor runs. The window keeps the screen on
 (`FLAG_KEEP_SCREEN_ON`) while `HomeScreen` is alive.
 
 ## Code layout

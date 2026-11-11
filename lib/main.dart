@@ -21,7 +21,6 @@ class LevelrApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return UiApp(
       title: 'Levelr',
-      themeMode: ThemeMode.system,
       home: HomeScreen(device: device, settings: settings),
     );
   }

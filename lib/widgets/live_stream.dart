@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:theme/theme.dart';
 
 import '../platform/device_channel.dart';
+import 'tab_active.dart';
 
-/// Listens to a stream while it is on screen and the app is in the foreground.
+/// Listens to a stream while its tab is the open one and the app is in the
+/// foreground.
 ///
-/// The native sensor is released when the app goes to the background and
-/// started again when it returns, so Levelr never drains the battery unseen.
+/// The native sensor is released when the tab is left or the app goes to the
+/// background and started again on return. The last event is kept meanwhile,
+/// so a revisited tab shows its last reading at once instead of a spinner.
 ///
 /// [onData] runs for every event before [builder], so a parent can keep
 /// derived state (filters, statistics). [builder] gets the latest event, or
@@ -38,12 +41,30 @@ class _LiveStreamState<T> extends State<LiveStream<T>> with WidgetsBindingObserv
   StreamSubscription<T>? _sub;
   T? _latest;
   Object? _error;
+  bool _foreground = true;
+  bool _tabActive = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _subscribe();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tabActive = TabActive.of(context);
+    _sync();
+  }
+
+  /// Samples only while the tab is open and the app is in the foreground.
+  void _sync() {
+    if (_tabActive && _foreground) {
+      if (_sub == null && _error == null) _subscribe();
+    } else {
+      _sub?.cancel();
+      _sub = null;
+    }
   }
 
   void _subscribe() {
@@ -63,10 +84,11 @@ class _LiveStreamState<T> extends State<LiveStream<T>> with WidgetsBindingObserv
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      _sub?.cancel();
-      _sub = null;
-    } else if (state == AppLifecycleState.resumed && _sub == null && _error == null) {
-      _subscribe();
+      _foreground = false;
+      _sync();
+    } else if (state == AppLifecycleState.resumed) {
+      _foreground = true;
+      _sync();
     }
   }
 

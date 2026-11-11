@@ -8,6 +8,7 @@ import '../core/sound_math.dart';
 import '../platform/device_channel.dart';
 import '../settings/settings_store.dart';
 import '../widgets/sound_offset_sheet.dart';
+import '../widgets/tab_active.dart';
 
 enum _MicState { starting, running, paused, denied, deniedForever, unavailable }
 
@@ -30,12 +31,33 @@ class _SoundScreenState extends State<SoundScreen> with WidgetsBindingObserver {
   StreamSubscription<double>? _sub;
   _MicState _state = _MicState.starting;
   String? _error;
+  bool _foreground = true;
+  bool _tabActive = true;
+
+  /// The microphone runs only while the tab is open and the app is in front.
+  bool get _mayListen => _foreground && _tabActive;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _start();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tabActive = TabActive.of(context);
+    _syncMic();
+  }
+
+  void _syncMic() {
+    if (_state != _MicState.running) return;
+    if (_mayListen) {
+      if (_sub == null) _listen();
+    } else {
+      _stop();
+    }
   }
 
   @override
@@ -47,11 +69,14 @@ class _SoundScreenState extends State<SoundScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused && _state == _MicState.running) {
-      _stop();
-    } else if (state == AppLifecycleState.resumed && _sub == null && _state == _MicState.running) {
-      _listen();
+    if (state == AppLifecycleState.paused) {
+      _foreground = false;
+    } else if (state == AppLifecycleState.resumed) {
+      _foreground = true;
+    } else {
+      return;
     }
+    _syncMic();
   }
 
   Future<void> _start() async {
@@ -61,7 +86,7 @@ class _SoundScreenState extends State<SoundScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     if (status.isGranted) {
       setState(() => _state = _MicState.running);
-      _listen();
+      if (_mayListen) _listen();
     } else {
       setState(() => _state = status.isPermanentlyDenied ? _MicState.deniedForever : _MicState.denied);
     }

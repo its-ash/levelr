@@ -96,6 +96,8 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
             const UiGap(UiSpace.lg),
+            const UiAppearanceSection(),
+            const UiGap(UiSpace.lg),
             const UiUpdateSection(storeId: 'levelr'),
             const UiGap(UiSpace.lg),
             const UiDeveloperSection(),
