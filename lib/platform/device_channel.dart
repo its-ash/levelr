@@ -57,9 +57,10 @@ class DeviceChannel {
   static const _gravity = EventChannel('$_base/gravity');
   static const _heading = EventChannel('$_base/heading');
   static const _mic = EventChannel('$_base/mic');
+  static Stream<Vec3>? _gravityStream;
 
   /// Gravity in the phone's frame, m/s2.
-  Stream<Vec3> gravity() => _gravity.receiveBroadcastStream().map((e) {
+  Stream<Vec3> gravity() => _gravityStream ??= _gravity.receiveBroadcastStream().map((e) {
         final v = (e as List).cast<num>();
         return Vec3(v[0].toDouble(), v[1].toDouble(), v[2].toDouble());
       }).transform(_mapErrors('This phone has no accelerometer.'));

@@ -16,6 +16,8 @@ import io.flutter.plugin.common.MethodChannel
  * - `com.itsash.levelr/mic` (events): RMS of each audio window, 0..1.
  */
 class MainActivity : FlutterActivity() {
+    private var micHandler: MicStreamHandler? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
@@ -40,8 +42,16 @@ class MainActivity : FlutterActivity() {
             .setStreamHandler(GravityStreamHandler(applicationContext))
         EventChannel(messenger, "$CHANNEL/heading")
             .setStreamHandler(HeadingStreamHandler(applicationContext))
+        val mic = MicStreamHandler()
+        micHandler = mic
         EventChannel(messenger, "$CHANNEL/mic")
-            .setStreamHandler(MicStreamHandler())
+            .setStreamHandler(mic)
+    }
+
+    override fun onDestroy() {
+        micHandler?.onCancel(null)
+        micHandler = null
+        super.onDestroy()
     }
 
     private fun displayMetrics(): Map<String, Double> {

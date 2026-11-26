@@ -7,6 +7,7 @@ import android.media.MediaRecorder
 import android.os.Handler
 import android.os.Looper
 import io.flutter.plugin.common.EventChannel
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.sqrt
 
 /**
@@ -16,11 +17,13 @@ import kotlin.math.sqrt
  */
 class MicStreamHandler : EventChannel.StreamHandler {
     private val main = Handler(Looper.getMainLooper())
-    private var thread: Thread? = null
-    @Volatile private var running = false
+    private var activeThread: Thread? = null
+    private var activeRecord: AudioRecord? = null
+    private var activeFlag: AtomicBoolean? = null
 
     @SuppressLint("MissingPermission")
     override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+        stopActive()
         val minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL, ENCODING)
         if (minBuffer <= 0) {
             events.error("no_mic", "The microphone is not available.", null)
@@ -39,21 +42,24 @@ class MicStreamHandler : EventChannel.StreamHandler {
             return
         }
 
-        running = true
-        thread = Thread {
+        val flag = AtomicBoolean(true)
+        activeFlag = flag
+        activeRecord = record
+        activeThread = Thread {
             val buffer = ShortArray(window)
-            record.startRecording()
             try {
-                while (running) {
+                record.startRecording()
+                while (flag.get()) {
                     val read = record.read(buffer, 0, buffer.size)
-                    if (read <= 0) continue
+                    if (read < 0) break
+                    if (read == 0) continue
                     var sum = 0.0
                     for (i in 0 until read) {
                         val s = buffer[i] / 32768.0
                         sum += s * s
                     }
                     val rms = sqrt(sum / read)
-                    main.post { if (running) events.success(rms) }
+                    main.post { if (flag.get()) events.success(rms) }
                 }
             } finally {
                 runCatching { record.stop() }
@@ -63,8 +69,19 @@ class MicStreamHandler : EventChannel.StreamHandler {
     }
 
     override fun onCancel(arguments: Any?) {
-        running = false
-        thread = null
+        stopActive()
+    }
+
+    private fun stopActive() {
+        val flag = activeFlag
+        val record = activeRecord
+        val thread = activeThread
+        activeFlag = null
+        activeRecord = null
+        activeThread = null
+        flag?.set(false)
+        if (record != null) runCatching { record.stop() }
+        if (thread != null) runCatching { thread.join(500) }
     }
 
     private companion object {

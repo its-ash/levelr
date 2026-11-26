@@ -73,10 +73,20 @@ class _SoundScreenState extends State<SoundScreen> with WidgetsBindingObserver {
       _foreground = false;
     } else if (state == AppLifecycleState.resumed) {
       _foreground = true;
+      if (_state == _MicState.denied || _state == _MicState.deniedForever) {
+        _recheckPermission();
+      }
     } else {
       return;
     }
     _syncMic();
+  }
+
+  Future<void> _recheckPermission() async {
+    final status = await Permission.microphone.status;
+    if (mounted && status.isGranted && (_state == _MicState.denied || _state == _MicState.deniedForever)) {
+      _start();
+    }
   }
 
   Future<void> _start() async {
